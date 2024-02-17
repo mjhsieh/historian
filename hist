@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="0.0.2"
+VERSION="0.0.4"
 HISTORIAN_BASH=${HISTORIAN_BASH-"${HOME}/.bash_history"} \
 HISTORIAN_ZSH=${HISTORIAN_ZSH-"${HOME}/.zsh_history"} \
 HISTORIAN_DB=${HISTORIAN_DB-"${HOME}/.historian.db"}
@@ -19,17 +19,19 @@ shell             launch sqlite3 shell with db
 search <terms...> search for one or more search terms
     /term           search for <term>
 version           show the version
+export            export in .bash_history format
+zshexport         export in .zsh_history  format
 EOF
 }
 
 awk() {
-    if [ -e /opt/local/bin/gawk ]; then
-      /opt/local/bin/gawk "$@"
-    elif [ -e /usr/local/bin/gawk ]; then
-      /usr/local/bin/gawk "$@"
-    else
-      /usr/bin/env awk "$@"
-    fi
+ if [ -e /opt/local/bin/gawk ]; then
+   LANG=C /opt/local/bin/gawk "$@"
+ elif [ -e /usr/local/bin/gawk ]; then
+   LANG=C /usr/local/bin/gawk "$@"
+ else
+   LANG=C /usr/bin/env awk "$@"
+ fi
 }
 
 sql_quote_term() {
@@ -99,7 +101,7 @@ insert_import_metadata() {
         done < "$vars_path"
     fi
 
-    echo "INSERT into metadata(metadata_id, key, value)"
+    echo "INSERT OR IGNORE INTO metadata(metadata_id, key, value)"
     let end=${#metadata[@]}-1
     for key_idx in $(seq 0 2 $end); do
         metadata_key=$(sql_quote_term "${metadata[$key_idx]}")
@@ -313,6 +315,10 @@ cmd_import() {
     insert_import_metadata > "$metadata_sql"
 
     cat > "$import_sql" <<- SQL
+.output /dev/null
+        PRAGMA busy_timeout = 200;
+.output stdout
+
         CREATE TEMPORARY TABLE variables
             (key TEXT, value INTEGER);
 
@@ -340,7 +346,7 @@ cmd_import() {
             , command
         FROM history_import;
 
-        insert into metadata (metadata_id, key, value)
+        INSERT OR IGNORE INTO metadata (metadata_id, key, value)
         select
             (select value from variables where key='metadata_id') as metadata_id
             , 'commands_imported' as key
@@ -413,6 +419,25 @@ cmd_shell() {
 
 cmd_version() {
     echo "historian version: ${VERSION}"
+}
+
+cmd_zshexport() {
+    preflight_check;
+    fail_unless_db_exists;
+
+    historian_sqlite <<SQL | LANG=C sed -e 's/^/: /;s/\t/:0\;/'
+.separator "\\t"
+        SELECT strftime('%s',command_timestamp), command FROM history ORDER BY id ASC;
+SQL
+}
+
+cmd_export() {
+    preflight_check;
+    fail_unless_db_exists;
+
+    historian_sqlite <<SQL
+        SELECT command FROM history ORDER BY id ASC;
+SQL
 }
 
 main() {
