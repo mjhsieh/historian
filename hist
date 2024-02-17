@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION="0.0.2"
+VERSION="0.0.4"
 HISTORIAN_BASH=${HISTORIAN_BASH-"${HOME}/.bash_history"} \
 HISTORIAN_ZSH=${HISTORIAN_ZSH-"${HOME}/.zsh_history"} \
 HISTORIAN_DB=${HISTORIAN_DB-"${HOME}/.historian.db"}

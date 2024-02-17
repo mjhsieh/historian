@@ -87,8 +87,6 @@ Be wary of running specially crafted `hist` commands or against
 
 ### Cool Things in the Future
 
-* `export` to append to `~/.bash_history`
 * `scrub` items from history
 * set or autodetect configs
-* other shells than bash
-* timestamp support
+* other shells than bash or zsh
