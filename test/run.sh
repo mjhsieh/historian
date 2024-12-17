@@ -30,6 +30,9 @@ run_tests() {
             fi
         done
         for test_fn in $test_fns; do
+            if [[ "$test_fn" =~ "zsh" ]]; then
+               which zsh > /dev/null || continue
+            fi
             echo -n "  ${test_fn} ... "
             sandbox=$(new_sandbox)
             last_failure_count=${failure_count}
